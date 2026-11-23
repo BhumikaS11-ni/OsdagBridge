@@ -145,7 +145,7 @@ from osdagbridge.core.reports.report_utils import _tex, _render_value, get_girde
 
 if TYPE_CHECKING:
     pass
-def ch5_design_checks(checks_data, bridge) -> str:
+def ch5_design_checks(checks_data, bridge, assets_dir=None) -> str:
     """Chapter 5 — Design Checks.
 
     Parameters
@@ -1066,6 +1066,109 @@ Fatigue Shear Resistance, $Q_r$ & IRC 22 Table 8 ($\phi d$, $N_{sc}$) & """
     t522_content = "\n".join(_t522)
 
     return r"""
+
+    chart_tex = ""
+
+    if assets_dir:
+        try:
+            import os
+            import re
+            import matplotlib.pyplot as plt
+
+            def get_chart_ur(cells):
+                if not cells or len(cells) < 4:
+                    return None
+                match = re.search(r"\d+(?:\.\d+)?", str(cells[3]))
+                return float(match.group()) if match else None
+
+            girder_rows = [
+                _dcr_row({1}),
+                _dcr_row({2}),
+                _dcr_row({5}),
+                _dcr_row({13, 14}, fallback_unit="mm"),
+                _dcr_row({11}, fallback_unit="MPa"),
+                _dcr_row({8, 9}, fallback_unit="MPa"),
+            ]
+
+            deck_rows = [
+                _deck_row(KEY_DD_M_ULS_SAG, KEY_DD_MU_BOT, "kN-m/m"),
+                _deck_row(KEY_DD_M_ULS_HOG, KEY_DD_MU_TOP, "kN-m/m"),
+                _deck_row(KEY_DD_M_ULS_OH, KEY_DD_MU_OH, "kN-m/m", is_oh=True),
+                _deck_row(KEY_DD_PUNCH_VED, KEY_DD_VRD_C_MPA, "MPa"),
+                _deck_row(KEY_DD_SHEAR_VED, KEY_DD_SHEAR_VRDC, "kN/m"),
+            ]
+
+            cb_rows = [
+                _cb_row("compression"),
+                _cb_row("tension"),
+                _cb_slender_row(),
+            ]
+
+            ed_rows = (
+                [_cb_row("compression"), _cb_row("tension")]
+                if _ed_is_cb else []
+            )
+
+            def max_ur(rows):
+                values = [get_chart_ur(row) for row in rows]
+                values = [v for v in values if v is not None]
+                return max(values) if values else None
+
+            labels = [
+                "Steel Girders",
+                "Concrete Deck Slab",
+                "Cross Bracing",
+                "End Diaphragms",
+            ]
+            values = [
+                max_ur(girder_rows),
+                max_ur(deck_rows),
+                max_ur(cb_rows),
+                max_ur(ed_rows),
+            ]
+
+            valid = [
+                (label, value)
+                for label, value in zip(labels, values)
+                if value is not None
+            ]
+
+            if valid:
+                labels, values = zip(*valid)
+                os.makedirs(assets_dir, exist_ok=True)
+                chart_path = os.path.join(
+                    assets_dir, "utilization_ratio_chart.png"
+                )
+
+                fig, ax = plt.subplots(figsize=(9, 4.5))
+                ax.bar(labels, values)
+                ax.axhline(1.0, linestyle="--", label="Limit (UR = 1.0)")
+                ax.set_ylabel("Demand / Capacity")
+                ax.set_title("Governing Utilization Ratio")
+                ax.set_ylim(bottom=0)
+                ax.legend()
+                ax.grid(axis="y", alpha=0.25)
+                plt.xticks(rotation=12, ha="right")
+                fig.tight_layout()
+                fig.savefig(chart_path, dpi=180, bbox_inches="tight")
+                plt.close(fig)
+
+                chart_tex = (
+                    r"\begin{figure}[H]" + "\n"
+                    r"\centering" + "\n"
+                    r"\includegraphics[width=0.90\textwidth]{"
+                    + _tex(chart_path) + "}\n"
+                    r"\caption{Governing Utilization Ratios "
+                    r"for Major Bridge Components}" + "\n"
+                    r"\end{figure}" + "\n"
+                )
+
+        except Exception:
+            import logging
+            logging.getLogger(__name__).exception(
+                "Could not generate utilization ratio chart"
+            )
+
 \chapter{Design Checks}
 
 This section presents all structural design checks performed by OsdagBridge. For each member, the demand from the governing load combination, the code-based capacity, and the utilization ratio are tabulated. All checks reference IS 800:2007 and IRC 22:2014 unless stated otherwise.
@@ -1487,6 +1590,7 @@ End diaphragms at the supports transfer transverse loads to the bearings, restra
 \noindent\textit{Note: Designed per IS 800 Cl. 7 (compression) and Cl. 6 (tension). OsdagBridge cross-bracing module used.}
 
 % ===========================
+""" + chart_tex + r"""
 \section{Overall Design Check Summary}
 \label{sec:overall-summary}
 % ===========================

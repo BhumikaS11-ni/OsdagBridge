@@ -301,9 +301,9 @@ This section summarizes all loads applied to the bridge and the load combination
 
 \vspace{1em}
 \begin{longtable}{|L{5.5cm}|p{10.0cm}|}
-\caption{\textbf{Live Loads (LL)}}
+\caption{\textbf{Vehicle Live Loads (LL)}}\\
 \hline
-\textbf{parameter} & \textbf{value} \\
+\textbf{Parameter} & \textbf{Value} \\
 \hline
 \textnormal{Vehicles Considered} & """ + _tex(vehicles_str) + r""" \\[6pt]
 \hline
@@ -311,7 +311,15 @@ This section summarizes all loads applied to the bridge and the load combination
 \hline
 \textnormal{Braking Load (IRC 6)} & """ + _tex(braking_force_str) + r""" \\[6pt]
 \hline
-\textnormal{Footpath Live Load (if applicable)} & """ + (_render_value(input_dict, KEY_LL_FOOTPATH_PRESSURE_VALUE, ' kN/m\\textsuperscript{2}')) + r""" \\[6pt]
+\end{longtable}
+
+\vspace{1em}
+\begin{longtable}{|L{5.5cm}|p{10.0cm}|}
+\caption{\textbf{Footpath Live Load}}\\
+\hline
+\textbf{Parameter} & \textbf{Value} \\
+\hline
+\textnormal{Footpath Live Load} & """ + (_render_value(input_dict, KEY_LL_FOOTPATH_PRESSURE_VALUE, ' kN/m\\textsuperscript{2}')) + r""" \\[6pt]
 \hline
 \end{longtable}
 
@@ -383,10 +391,18 @@ This section summarizes all loads applied to the bridge and the load combination
 
 \vspace{1em}
 \begin{longtable}{|C{4.0cm}|p{11.5cm}|}
-\caption{\textbf{Load Combinations}}
+\caption{\textbf{Load Combinations}}\\
 \hline
 \textbf{Combination ID} & \textbf{Load Cases} \\[6pt]
 \hline
+\endfirsthead
+
+\multicolumn{2}{c}%
+{{\tablename\ \thetable{} -- continued from previous page}} \\
+\hline
+\textbf{Combination ID} & \textbf{Load Cases} \\[6pt]
+\hline
+\endhead
 """ + lc_rows_str + r"""
 \end{longtable}
 
